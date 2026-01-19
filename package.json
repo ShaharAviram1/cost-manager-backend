@@ -8,7 +8,11 @@
     "dev:costs": "nodemon services/costs-service/index.js",
     "dev:logs": "nodemon services/logs-service/index.js",
     "dev:admin": "nodemon services/admin-service/index.js",
-    "test": "jest"
+    "test": "jest",
+    "start:users": "node services/users-service/index.js",
+    "start:costs": "node services/costs-service/index.js",
+    "start:logs": "node services/logs-service/index.js",
+    "start:admin": "node services/admin-service/index.js"
   },
   "keywords": [],
   "author": "",
