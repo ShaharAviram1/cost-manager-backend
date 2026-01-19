@@ -18,6 +18,13 @@ function isValidYear(year) {
     return Number.isInteger(year) && year >= 1970 && year <= 3000;
 }
 
+
+/*
+ * Builds a monthly cost report for a given user, year, and month.
+ * Costs are grouped by category and include sum, description, and day-of-month.
+ * This function is part of the Computed Design Pattern: past reports may be cached
+ * by the caller to avoid recomputation, while current/future reports are generated dynamically.
+ */
 async function generateReport(userid, year, month) {
 
     const start = new Date(year, month - 1, 1);
@@ -57,6 +64,7 @@ router.post("/add", async (req, res) => {
     await endpointAccessLog(req, res, "POST /api/add (cost)");
     const { userid, description, category, sum, createdAt } = req.body;
     
+    // Basic input validation for required cost fields and types
     if (typeof description !== "string" ||
         typeof category !== "string" ||
         typeof userid !== "number" ||
@@ -65,15 +73,17 @@ router.post("/add", async (req, res) => {
         return res.status(400).json(errorJson(400, "Invalid cost fields"));
     }
 
+    // Business rule: category must be one of the predefined allowed categories
     if (!CATEGORIES.includes(category)) {
         return res.status(400).json(errorJson(400, "Invalid category"));
     }
 
+    // Business rule: cost sum must be non-negative
     if (sum < 0) {
         return res.status(400).json(errorJson(400, "sum must be non-negative"));
     }
     
-    // Date validation (if provided)
+    // Optional date handling and validation (reject past dates if provided)
     let costDate = new Date();
     if (createdAt !== undefined) {
         const parsedDate = new Date(createdAt);
@@ -89,12 +99,13 @@ router.post("/add", async (req, res) => {
         costDate = parsedDate;
     }
     try {
-        // ===== Business logic =====
+        // Business rule: cost can only be added for an existing user
         const userExists = await User.findOne({ id: userid });
         if (!userExists) {
             return res.status(404).json(errorJson(404, "User does not exist"));
         }
 
+        // Persist the validated cost item to the database
         const cost = new Cost({
             userid,
             description,
@@ -123,6 +134,7 @@ router.post("/add", async (req, res) => {
 router.get("/report", async (req, res) => {
     await endpointAccessLog(req, res, "GET /api/report");
 
+    // Parse and normalize query parameters
     const userid = Number(req.query.id);
     const year = Number(req.query.year);
     const month = Number(req.query.month);
@@ -141,8 +153,10 @@ router.get("/report", async (req, res) => {
         if (!userExists) {
             return res.status(404).json(errorJson(404, "User does not exist"));
         }
+        // Determine whether the requested month is in the past relative to the current date
         const now = new Date();
         const past = (year < now.getFullYear()) || (year === now.getFullYear() && month < (now.getMonth()+1));
+        // Past reports are cached (computed once); current/future reports are generated on demand
         if (past) {
             let report = await Report.findOne({ userid, year, month }).lean();
             if (!report) {
