@@ -7,7 +7,7 @@ async function main() {
     await connectToMongo();
 
     const app = buildCostsApp();
-    const port = Number(process.env.PORT_COSTS || 3002);
+    const port = Number(process.env.PORT || process.env.PORT_COSTS || 3002);
 
     app.listen(port, () => {
         console.log(`costs-service running on ${port}`);
